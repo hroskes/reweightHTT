@@ -19,13 +19,13 @@ if __name__ == "__main__":
 
 
 import array
+import os
 import ROOT
 
 from lhefile import LHEFile_JHUGenVBFVH
 from ZZMatrixElement.MELA.mela import TVar
 
 def runonLHE(lhefile, productionmode, firsteventnumber, inputg1, inputg2, inputg4, inputg1prime2):
-  m = Mela()
   rootfile = lhefile.replace(".lhe", ".root")
   if os.path.exists(rootfile): raise IOError(rootfile + " already exists")
   rootf = ROOT.TFile(rootfile, "CREATE")
@@ -43,7 +43,9 @@ def runonLHE(lhefile, productionmode, firsteventnumber, inputg1, inputg2, inputg
     t.Branch(branchname, branches[branchname], branchname+"/I")
 
   with LHEFile_JHUGenVBFVH(lhefile) as lhef:
-    for branches["eventnumber"][0], event in enumerate(lhef, start=firsteventnumber):
+    for i, event in enumerate(lhef):
+      branches["eventnumber"][0] = firsteventnumber+i
+      if i>0 and i % 1000 == 0: print "Processed", i, "events"
       if productionmode == "VBF":
         process = TVar.JJVBF
       elif productionmode == "ZH":
@@ -106,19 +108,24 @@ def runonLHE(lhefile, productionmode, firsteventnumber, inputg1, inputg2, inputg
       event.ghzgs1_prime2 = 1e4  #otherwise you get big + small - big and lose precision
       p_a1L1Zg = (event.computeProdP(False) - p_a1 - p_L1Zg*1e8) / 1e4
 
-      branches["wt_a1"] = p_a1
-      branches["wt_a2"] = p_a2
-      branches["wt_a3"] = p_a3
-      branches["wt_L1"] = p_L1
-      branches["wt_L1Zg"] = p_L1Zg
-      branches["wt_a1a2"] = p_a1a2
-      branches["wt_a1a3"] = p_a1a3
-      branches["wt_a1L1"] = p_a1L1
-      branches["wt_a1L1Zg"] = p_a1L1Zg
+      branches["wt_a1"][0] = p_a1 / p_base
+      branches["wt_a2"][0] = p_a2 / p_base
+      branches["wt_a3"][0] = p_a3 / p_base
+      branches["wt_L1"][0] = p_L1 / p_base
+      branches["wt_L1Zg"][0] = p_L1Zg / p_base
+      branches["wt_a1a2"][0] = p_a1a2 / p_base
+      branches["wt_a1a3"][0] = p_a1a3 / p_base
+      branches["wt_a1L1"][0] = p_a1L1 / p_base
+      branches["wt_a1L1Zg"][0] = p_a1L1Zg / p_base
+      t.Fill()
+
+    print "Processed", i+1, "events"
+    rootf.Write()
+    rootf.Close()
 
 if __name__ == "__main__":
   for filename in args.lhefile:
     if args.VBF: productionmode = "VBF"
     if args.ZH: productionmode = "ZH"
     if args.WH: productionmode = "WH"
-    runonLHE(filename, productionmode, args.firsteventnumber, args.g1, args.g2, args.g4, args.g1prime2)
+    runonLHE(filename, productionmode, args.firstevent, args.g1, args.g2, args.g4, args.g1prime2)

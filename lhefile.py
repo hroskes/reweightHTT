@@ -51,6 +51,6 @@ class LHEFile_JHUGenVBFVH(object):
         return getattr(self.mela, attr)
     def __setattr__(self, attr, value):
         if attr in ("filename", "f", "mela", "daughters", "mothers", "associated"):
-            super(LHEFile, self).__setattr__(attr, value)
+            super(LHEFile_JHUGenVBFVH, self).__setattr__(attr, value)
         else:
             setattr(self.mela, attr, value)
