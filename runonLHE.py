@@ -9,6 +9,7 @@ if __name__ == "__main__":
   group.add_argument("--VBF", action="store_true")
   group.add_argument("--ZH", action="store_true")
   group.add_argument("--WH", action="store_true")
+  group.add_argument("--ggH", action="store_true")
   parser.add_argument("--g1", type=float, default=0)
   parser.add_argument("--g2", type=float, default=0)
   parser.add_argument("--g4", type=float, default=0)
@@ -31,7 +32,10 @@ def runonLHE(lhefile, productionmode, firsteventnumber, inputg1, inputg2, inputg
   rootf = ROOT.TFile(rootfile, "CREATE")
   t = ROOT.TTree("tree", "tree")
 
-  branches_float = ["wt_a1", "wt_a2", "wt_a3", "wt_L1", "wt_L1Zg", "wt_a1a2", "wt_a1a3", "wt_a1L1", "wt_a1L1Zg"]
+  if productionmode == "ggH":
+    branches_float = ["wt_a1", "wt_a2", "wt_a3", "wt_L1", "wt_L1Zg", "wt_a1a2", "wt_a1a3", "wt_a1L1", "wt_a1L1Zg"]
+  else:
+    branches_float = ["wt_a2", "wt_a3", "wt_a2a3"]
   branches_int = ["eventnumber"]
 
   branches = {name: array.array("f", [0]) for name in branches_float}
@@ -48,6 +52,8 @@ def runonLHE(lhefile, productionmode, firsteventnumber, inputg1, inputg2, inputg
       if i>0 and i % 1000 == 0: print "Processed", i, "events"
       if productionmode == "VBF":
         process = TVar.JJVBF
+      elif productionmode == "ggH":
+        process = TVar.JJQCD
       elif productionmode == "ZH":
         if all(11 <= abs(particle.first) <= 16 for particle in event.associated):
           process = TVar.Lep_ZH
@@ -65,58 +71,75 @@ def runonLHE(lhefile, productionmode, firsteventnumber, inputg1, inputg2, inputg
 
       event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
       event.ghz1 = inputg1
-      event.ghz2 = inputg2
-      event.ghz4 = inputg4
+      event.ghz2 = event.ghg2 = inputg2
+      event.ghz4 = event.ghg4 = inputg4
       event.ghz1_prime2 = inputg1prime2
       p_base = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz1 = 1
-      p_a1 = event.computeProdP(False)
+      if productionmode == "ggH":
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghg2 = 1
+        p_a2 = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz2 = 1
-      p_a2 = event.computeProdP(False)
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghg4 = 1
+        p_a3 = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz4 = 1
-      p_a3 = event.computeProdP(False)
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghg2 = event.ghg4 = 1
+        p_a2a3 = event.computeProdP(False) - p_a2 - p_a3
+      else:
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz1 = 1
+        p_a1 = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz1_prime2 = 1
-      p_L1 = event.computeProdP(False)
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz2 = 1
+        p_a2 = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghzgs1_prime2 = 1
-      p_L1Zg = event.computeProdP(False)
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz4 = 1
+        p_a3 = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz1 = event.ghz2 = 1
-      p_a1a2 = event.computeProdP(False) - p_a1 - p_a2
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz1_prime2 = 1
+        p_L1 = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz1 = event.ghz4 = 1
-      p_a1a3 = event.computeProdP(False) - p_a1 - p_a3
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghzgs1_prime2 = 1
+        p_L1Zg = event.computeProdP(False)
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz1 = 1
-      event.ghz1_prime2 = 1e4  #otherwise you get big + small - big and lose precision
-      p_a1L1 = (event.computeProdP(False) - p_a1 - p_L1*1e8) / 1e4
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz1 = event.ghz2 = 1
+        p_a1a2 = event.computeProdP(False) - p_a1 - p_a2
 
-      event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
-      event.ghz1 = 1
-      event.ghzgs1_prime2 = 1e4  #otherwise you get big + small - big and lose precision
-      p_a1L1Zg = (event.computeProdP(False) - p_a1 - p_L1Zg*1e8) / 1e4
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz1 = event.ghz4 = 1
+        p_a1a3 = event.computeProdP(False) - p_a1 - p_a3
 
-      branches["wt_a1"][0] = p_a1 / p_base
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz1 = 1
+        event.ghz1_prime2 = 1e4  #otherwise you get big + small - big and lose precision
+        p_a1L1 = (event.computeProdP(False) - p_a1 - p_L1*1e8) / 1e4
+
+        event.setProcess(TVar.SelfDefine_spin0, TVar.JHUGen, process)
+        event.ghz1 = 1
+        event.ghzgs1_prime2 = 1e4  #otherwise you get big + small - big and lose precision
+        p_a1L1Zg = (event.computeProdP(False) - p_a1 - p_L1Zg*1e8) / 1e4
+
+      if productionmode != "ggH":
+        branches["wt_a1"][0] = p_a1 / p_base
       branches["wt_a2"][0] = p_a2 / p_base
       branches["wt_a3"][0] = p_a3 / p_base
-      branches["wt_L1"][0] = p_L1 / p_base
-      branches["wt_L1Zg"][0] = p_L1Zg / p_base
-      branches["wt_a1a2"][0] = p_a1a2 / p_base
-      branches["wt_a1a3"][0] = p_a1a3 / p_base
-      branches["wt_a1L1"][0] = p_a1L1 / p_base
-      branches["wt_a1L1Zg"][0] = p_a1L1Zg / p_base
+      if productionmode == "ggH":
+        branches["wt_a2a3"] = p_a2a3 / p_base
+      else:
+        branches["wt_L1"][0] = p_L1 / p_base
+        branches["wt_L1Zg"][0] = p_L1Zg / p_base
+        branches["wt_a1a2"][0] = p_a1a2 / p_base
+        branches["wt_a1a3"][0] = p_a1a3 / p_base
+        branches["wt_a1L1"][0] = p_a1L1 / p_base
+        branches["wt_a1L1Zg"][0] = p_a1L1Zg / p_base
       t.Fill()
 
     print "Processed", i+1, "events"
@@ -128,4 +151,5 @@ if __name__ == "__main__":
     if args.VBF: productionmode = "VBF"
     if args.ZH: productionmode = "ZH"
     if args.WH: productionmode = "WH"
+    if args.ggH: productionmode = "ggH"
     runonLHE(filename, productionmode, args.firstevent, args.g1, args.g2, args.g4, args.g1prime2)
