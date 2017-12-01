@@ -10,10 +10,6 @@ if __name__ == "__main__":
   group.add_argument("--ZH", action="store_true")
   group.add_argument("--WH", action="store_true")
   group.add_argument("--ggH", action="store_true")
-  parser.add_argument("--g1", type=float, default=0)
-  parser.add_argument("--g2", type=float, default=0)
-  parser.add_argument("--g4", type=float, default=0)
-  parser.add_argument("--g1prime2", type=float, default=0)
   parser.add_argument("--firstevent", type=int, required=True)
 
   args = parser.parse_args()
@@ -21,13 +17,42 @@ if __name__ == "__main__":
 
 import array
 import os
+import re
 import ROOT
 
 from lhefile import LHEFile_JHUGenVBFVH
 from ZZMatrixElement.MELA.mela import TVar
 
-def runonLHE(lhefile, productionmode, firsteventnumber, inputg1, inputg2, inputg4, inputg1prime2):
+def runonLHE(lhefile, productionmode, firsteventnumber):
   rootfile = lhefile.replace(".lhe", ".root")
+  inputg1 = inputg2 = inputg4 = inputg1prime2 = 0
+  with open(lhefile) as f:
+    for line in f:
+      if "<init>" in line: break
+      line = line.strip()
+      if productionmode == "ggH":
+        match = re.match("ghg2= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        if match: inputg2 = float(match.group(1))
+        match = re.match("ghg4= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        if match: inputg4 = float(match.group(1))
+      else:
+        match = re.match("ghz1= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        if match: inputg1 = float(match.group(1))
+        match = re.match("ghz2= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        if match: inputg2 = float(match.group(1))
+        match = re.match("ghz4= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        if match: inputg4 = float(match.group(1))
+        match = re.match("ghz1_prime2= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        if match: inputg1prime2 = float(match.group(1))
+
+  print "Here are the couplings (please check):"
+  print "For "+lhefile+":"
+  print "        g1 =", inputg1
+  print "        g2 =", inputg2
+  print "        g4 =", inputg4
+  print "  g1prime2 =", inputg1prime2
+
+
   if os.path.exists(rootfile): raise IOError(rootfile + " already exists")
   rootf = ROOT.TFile(rootfile, "CREATE")
   t = ROOT.TTree("tree", "tree")
@@ -152,4 +177,4 @@ if __name__ == "__main__":
     if args.ZH: productionmode = "ZH"
     if args.WH: productionmode = "WH"
     if args.ggH: productionmode = "ggH"
-    runonLHE(filename, productionmode, args.firstevent, args.g1, args.g2, args.g4, args.g1prime2)
+    runonLHE(filename, productionmode, args.firstevent)
