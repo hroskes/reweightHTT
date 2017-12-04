@@ -24,6 +24,24 @@ from lhefile import LHEFile_JHUGenVBFVH
 from ZZMatrixElement.MELA.mela import TVar
 
 def runonLHE(lhefile, productionmode, firsteventnumber):
+  # constant definitions, YM
+  # VBF
+  a3 = 0.297979018705
+  a2 = 0.27196538
+  L1 = -2158.21307286
+  L1Zg = -4091.0
+  if productionmode == "ZH":
+    a3 = 0
+    a2 = 0
+    L1 = 0
+    L1Zg = -642.9534
+  if productionmode == "WH":
+    a3 = 0
+    a2 = 0
+    L1 = 0
+    L1Zg = 0.0
+
+
   rootfile = lhefile.replace(".lhe", ".root")
   inputg1 = inputg2 = inputg4 = inputg1prime2 = 0
   with open(lhefile) as f:
@@ -57,8 +75,9 @@ def runonLHE(lhefile, productionmode, firsteventnumber):
   rootf = ROOT.TFile(rootfile, "CREATE")
   t = ROOT.TTree("tree", "tree")
 
-  if productionmode == "ggH":
-    branches_float = ["wt_a1", "wt_a2", "wt_a3", "wt_L1", "wt_L1Zg", "wt_a1a2", "wt_a1a3", "wt_a1L1", "wt_a1L1Zg"]
+  if productionmode <> "ggH":
+    branches_float = ["wt_a1", "wt_a2", "wt_a3", "wt_L1", "wt_L1Zg", "wt_a1a2", "wt_a1a3", "wt_a1L1", "wt_a1L1Zg", \
+                        "wt_a3int", "wt_a2int", "wt_L1int", "wt_L1Zgint"]
   else:
     branches_float = ["wt_a2", "wt_a3", "wt_a2a3"]
   branches_int = ["eventnumber"]
@@ -154,8 +173,10 @@ def runonLHE(lhefile, productionmode, firsteventnumber):
 
       if productionmode != "ggH":
         branches["wt_a1"][0] = p_a1 / p_base
+
       branches["wt_a2"][0] = p_a2 / p_base
       branches["wt_a3"][0] = p_a3 / p_base
+
       if productionmode == "ggH":
         branches["wt_a2a3"] = p_a2a3 / p_base
       else:
@@ -165,6 +186,10 @@ def runonLHE(lhefile, productionmode, firsteventnumber):
         branches["wt_a1a3"][0] = p_a1a3 / p_base
         branches["wt_a1L1"][0] = p_a1L1 / p_base
         branches["wt_a1L1Zg"][0] = p_a1L1Zg / p_base
+        branches["wt_a3int"][0] = (p_a1 + a3*p_a1a3 + a3*a3*p_a3) / p_base
+        branches["wt_a2int"][0] = (p_a1 + a2*p_a1a2 + a2*a2*p_a2) / p_base
+        branches["wt_L1int"][0] = (p_a1 + L1*p_a1L1 + L1*L1*p_L1) / p_base
+        branches["wt_L1Zgint"][0] = (p_a1 + L1Zg*p_a1L1Zg + L1Zg*L1Zg*p_L1Zg) / p_base
       t.Fill()
 
     print "Processed", i+1, "events"
@@ -178,3 +203,4 @@ if __name__ == "__main__":
     if args.WH: productionmode = "WH"
     if args.ggH: productionmode = "ggH"
     runonLHE(filename, productionmode, args.firstevent)
+
