@@ -49,18 +49,18 @@ def runonLHE(lhefile, productionmode, firsteventnumber):
       if "<init>" in line: break
       line = line.strip()
       if productionmode == "ggH":
-        match = re.match("ghg2= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        match = re.match("ghg2= *([0-9E+-.]*) *[0-9E+-.]*i", line)
         if match: inputg2 = float(match.group(1))
-        match = re.match("ghg4= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        match = re.match("ghg4= *([0-9E+-.]*) *[0-9E+-.]*i", line)
         if match: inputg4 = float(match.group(1))
       else:
-        match = re.match("ghz1= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        match = re.match("ghz1= *([0-9E+-.]*) *[0-9E+-.]*i", line)
         if match: inputg1 = float(match.group(1))
-        match = re.match("ghz2= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        match = re.match("ghz2= *([0-9E+-.]*) *[0-9E+-.]*i", line)
         if match: inputg2 = float(match.group(1))
-        match = re.match("ghz4= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        match = re.match("ghz4= *([0-9E+-.]*) *[0-9E+-.]*i", line)
         if match: inputg4 = float(match.group(1))
-        match = re.match("ghz1_prime2= *([0-9E+-.])* *[0-9E+-.]*i", line)
+        match = re.match("ghz1_prime2= *([0-9E+-.]*) *[0-9E+-.]*i", line)
         if match: inputg1prime2 = float(match.group(1))
 
   print "Here are the couplings (please check):"
