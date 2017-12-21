@@ -11,6 +11,7 @@ if __name__ == "__main__":
   group.add_argument("--WH", action="store_true")
   group.add_argument("--ggH", action="store_true")
   parser.add_argument("--firstevent", type=int, required=True)
+  parser.add_argument("--angles", action="store_true")
 
   args = parser.parse_args()
 
@@ -23,7 +24,7 @@ import ROOT
 from lhefile import LHEFile_JHUGenVBFVH
 from ZZMatrixElement.MELA.mela import TVar
 
-def runonLHE(lhefile, productionmode, firsteventnumber):
+def runonLHE(lhefile, productionmode, firsteventnumber, doangles=False):
   # constant definitions, YM
   # VBF
   a3 = 0.297979018705
@@ -81,6 +82,11 @@ def runonLHE(lhefile, productionmode, firsteventnumber):
   else:
     branches_float = ["wt_a2", "wt_a3", "wt_a2a3"]
   branches_int = ["eventnumber"]
+
+  if doangles:
+    branches_float += ["costheta1", "costheta2", "Phi", "costhetastar", "Phi1"]
+    if productionmode in ("VBF", "VH"):
+      branches_float += ["q1", "q2"]
 
   branches = {name: array.array("f", [0]) for name in branches_float}
   branches.update({name: array.array("i", [0]) for name in branches_int})
@@ -190,6 +196,17 @@ def runonLHE(lhefile, productionmode, firsteventnumber):
         branches["wt_a2int"][0] = (p_a1 + a2*p_a1a2 + a2*a2*p_a2) / p_base
         branches["wt_L1int"][0] = (p_a1 + L1*p_a1L1 + L1*L1*p_L1) / p_base
         branches["wt_L1Zgint"][0] = (p_a1 + L1Zg*p_a1L1Zg + L1Zg*L1Zg*p_L1Zg) / p_base
+
+      if doangles:
+        if productionmode in ("VBF", "HJJ"):
+          (Q2V1, Q2V2, branches["costheta1"][0], branches["costheta2"][0],
+           branches["Phi"][0], branches["costhetastar"][0], branches["Phi1"][0]) = event.computeVBFAngles()
+          branches["q1"][0] = Q2V1**.5
+          branches["q2"][0] = Q2V2**.5
+        elif productionmode in ("ZH", "WH"):
+          (branches["costheta1"][0], branches["costheta2"][0],
+           branches["Phi"][0], branches["costhetastar"][0], branches["Phi1"][0]) = event.computeVHAngles()
+
       t.Fill()
 
     print "Processed", i+1, "events"
@@ -202,5 +219,5 @@ if __name__ == "__main__":
     if args.ZH: productionmode = "ZH"
     if args.WH: productionmode = "WH"
     if args.ggH: productionmode = "ggH"
-    runonLHE(filename, productionmode, args.firstevent)
+    runonLHE(filename, productionmode, args.firstevent, args.angles)
 
